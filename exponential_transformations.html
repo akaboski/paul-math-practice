@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8f6">
+  <meta name="color-scheme" content="light">
+  <title>Exponentials · Transformations</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1a2522;
+      background: #f7f8f6;
+      font-synthesis: none;
+      --line: #e3e8e4;
+      --muted: #697570;
+      --accent: #164e41;
+      --a: #79309b;
+      --b: #2058a3;
+      --h: #975400;
+      --k: #176b46;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; }
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    [hidden] { display: none !important; }
+    .app { width: min(100%, 590px); margin: 0 auto; padding: 20px 16px calc(24px + env(safe-area-inset-bottom)); }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+    .wordmark { color: var(--muted); font-size: 0.76rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+    .stats { display: flex; gap: 16px; white-space: nowrap; font-size: .82rem; color: var(--muted); }
+    .stats strong { color: #17241f; font-size: 1.05rem; font-variant-numeric: tabular-nums; padding-left: 3px; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 19px; padding: clamp(17px, 4.5vw, 28px); box-shadow: 0 5px 23px rgba(27, 42, 32, .035); }
+    .eyebrow { color: var(--muted); text-transform: uppercase; letter-spacing: .11em; font-size: .73rem; font-weight: 750; margin: 0 0 14px; }
+    .question-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; margin: -4px 0 3px; font-size: .79rem; color: var(--muted); }
+    .result-toast { font-weight: 750; color: var(--accent); text-align: right; }
+    .noscript-warning { margin: 12px 0; padding: 12px; border: 1px solid #dc985d; border-radius: 10px; font-size: .9rem; }
+    .equation-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; padding: 7px 0 3px; }
+    .equation { margin: 0; width: max-content; max-width: none; font-size: clamp(1.55rem, 6.1vw, 2.55rem); font-weight: 650; line-height: 1.55; letter-spacing: -.035em; font-variant-numeric: lining-nums; }
+    .equation sup { font-size: .67em; line-height: 0; font-weight: 600; vertical-align: super; letter-spacing: -.018em; }
+    .equation:focus { outline: none; }
+    .origin { color: var(--muted); margin: 12px 0 18px; font-size: .84rem; line-height: 1.5; }
+    .origin strong { color: #34483e; font-weight: 650; }
+    .choices { border-top: 1px solid var(--line); }
+    .choice { display: flex; align-items: center; min-height: 56px; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .choice label { min-width: 0; flex: 1; cursor: pointer; display: flex; gap: 11px; align-items: center; line-height: 1.3; font-size: .95rem; }
+    .choice input[type="checkbox"] { flex: 0 0 auto; margin: 0; width: 21px; height: 21px; accent-color: var(--accent); cursor: pointer; }
+    .choice input[type="text"] { width: 86px; min-width: 75px; height: 38px; border: 1px solid #b6c4bc; border-radius: 9px; background: #fff; text-align: center; font-size: 16px; font-variant-numeric: tabular-nums; outline-offset: 2px; }
+    .choice input[type="text"]:disabled { background: #f5f7f5; border-color: #e7ebe8; color: #a3afa9; }
+    .choice:has(input[type="checkbox"]:checked) label { color: #153f35; font-weight: 620; }
+    .choice:has(input[type="checkbox"]:checked) input[type="text"] { border-color: #709c8b; }
+    .button { display: block; width: 100%; margin-top: 20px; border: 0; border-radius: 11px; min-height: 51px; padding: 12px 16px; color: #fff; background: var(--accent); font-size: .99rem; font-weight: 700; cursor: pointer; }
+    .button:hover { background: #103d32; }
+    .button:active { transform: translateY(1px); }
+    .button:focus-visible, .choice input:focus-visible { outline: 3px solid #a4d5c5; outline-offset: 2px; }
+    .feedback-title { margin: 4px 0 9px; font-size: 1.2rem; letter-spacing: -.02em; }
+    .feedback-subtitle { color: var(--muted); font-size: .86rem; margin: 0 0 12px; }
+    .parts { border-top: 1px solid var(--line); margin-top: 15px; }
+    .part { padding: 13px 0 13px 12px; border-bottom: 1px solid var(--line); border-left: 3px solid; margin: 0; }
+    .part-a { border-left-color: var(--a); }
+    .part-b { border-left-color: var(--b); }
+    .part-h { border-left-color: var(--h); }
+    .part-k { border-left-color: var(--k); }
+    .part strong { display: block; margin-bottom: 4px; font-size: .91rem; font-weight: 750; }
+    .part p { margin: 0; font-size: .86rem; line-height: 1.5; color: #44514b; }
+    .part-a strong, .c-a { color: var(--a); }
+    .part-b strong, .c-b { color: var(--b); }
+    .part-h strong, .c-h { color: var(--h); }
+    .part-k strong, .c-k { color: var(--k); }
+    .note { text-align: center; font-size: .75rem; color: #8a9790; margin: 14px 0 0; }
+    @media (max-width: 365px) {
+      .stats { gap: 9px; font-size: .74rem; }
+      .wordmark { font-size: .67rem; }
+      .choice label { font-size: .87rem; }
+      .choice input[type="text"] { width: 72px; min-width: 72px; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="wordmark">Exponential shifts</div>
+      <div class="stats" aria-label="Scores">
+        <span>Streak <strong id="streak">0</strong></span>
+        <span>Best <strong id="best">0</strong></span>
+      </div>
+    </header>
+
+    <section class="panel" aria-label="Exponential transformations practice">
+      <p class="eyebrow" id="prompt">Identify every transformation</p>
+      <div class="question-meta"><span>Question <span id="questionNumber">1</span></span><span class="result-toast" id="resultToast" hidden>✓ Correct! Next question</span></div>
+      <noscript><p class="noscript-warning">This preview does not run JavaScript. Download the HTML file and open it in a full browser, not a file preview.</p></noscript>
+      <div class="equation-wrap">
+        <h1 class="equation" id="equation" tabindex="-1"></h1>
+      </div>
+      <p class="origin" id="origin">From <strong id="baseFunction">2<sup>x</sup></strong> · Select all that apply. Use positive decimals or fractions.</p>
+
+      <form id="answerForm" novalidate>
+        <div class="choices">
+          <div class="choice"><label for="reflectX"><input type="checkbox" id="reflectX"><span>Reflect across x-axis</span></label></div>
+          <div class="choice"><label for="reflectY"><input type="checkbox" id="reflectY"><span>Reflect across y-axis</span></label></div>
+          <div class="choice"><label for="vertical"><input type="checkbox" id="vertical"><span>Stretch vertically by</span></label><input type="text" id="verticalValue" inputmode="decimal" aria-label="Vertical stretch factor" autocomplete="off" spellcheck="false" disabled></div>
+          <div class="choice"><label for="horizontal"><input type="checkbox" id="horizontal"><span>Stretch horizontally by</span></label><input type="text" id="horizontalValue" inputmode="decimal" aria-label="Horizontal stretch factor" autocomplete="off" spellcheck="false" disabled></div>
+          <div class="choice"><label for="up"><input type="checkbox" id="up"><span>Move up by</span></label><input type="text" id="upValue" inputmode="decimal" aria-label="Units to move up" autocomplete="off" spellcheck="false" disabled></div>
+          <div class="choice"><label for="down"><input type="checkbox" id="down"><span>Move down by</span></label><input type="text" id="downValue" inputmode="decimal" aria-label="Units to move down" autocomplete="off" spellcheck="false" disabled></div>
+          <div class="choice"><label for="left"><input type="checkbox" id="left"><span>Move left by</span></label><input type="text" id="leftValue" inputmode="decimal" aria-label="Units to move left" autocomplete="off" spellcheck="false" disabled></div>
+          <div class="choice"><label for="right"><input type="checkbox" id="right"><span>Move right by</span></label><input type="text" id="rightValue" inputmode="decimal" aria-label="Units to move right" autocomplete="off" spellcheck="false" disabled></div>
+        </div>
+        <button class="button" id="checkButton" type="button">Check answer</button>
+      </form>
+
+      <div id="feedback" hidden aria-live="off">
+        <h2 class="feedback-title" id="feedbackTitle" tabindex="-1">Not quite.</h2>
+        <p class="feedback-subtitle">Correct transformations, matched to each part of the equation:</p>
+        <div class="parts" id="parts"></div>
+        <button class="button" id="nextButton" type="button">Next question</button>
+      </div>
+    </section>
+    <p class="note">Factors below 1 are compressions.</p>
+    <div id="announcer" class="sr-only" aria-live="polite" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;"></div>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (id) => document.getElementById(id);
+      const scales = [-3, -2, -1, -0.5, 0.5, 2, 3];
+      const steps = [-3, -2, -1, 1, 2, 3];
+      const keys = ['reflectX', 'reflectY', 'vertical', 'horizontal', 'up', 'down', 'left', 'right'];
+      const quantified = ['vertical', 'horizontal', 'up', 'down', 'left', 'right'];
+      const storageKey = 'offline-exponent-transforms-v1';
+      let streak = 0;
+      let best = 0;
+      let question = null;
+      let questionNumber = 0;
+      let lastSuccessTime = 0;
+      let previousSignature = '';
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved && Number.isSafeInteger(saved.streak) && saved.streak >= 0) streak = saved.streak;
+        if (saved && Number.isSafeInteger(saved.best) && saved.best >= 0) best = Math.max(saved.best, streak);
+      } catch (_) { /* Storage may be unavailable for file:// documents. */ }
+
+      function saveScores() {
+        try { localStorage.setItem(storageKey, JSON.stringify({ streak, best })); } catch (_) { /* Optional. */ }
+      }
+
+      function updateScores() {
+        $('streak').textContent = streak;
+        $('best').textContent = best;
+        saveScores();
+      }
+
+      function choice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+      function maybeScale() { return Math.random() < 0.59 ? choice(scales) : 1; }
+      function maybeShift() { return Math.random() < 0.59 ? choice(steps) : 0; }
+      function numberText(n) {
+        if (Object.is(n, -0)) n = 0;
+        return String(n).replace('-', '−');
+      }
+      const near = (x, y) => Math.abs(x - y) < 1e-9;
+      const signedTerm = (n) => n < 0 ? ' − ' + numberText(-n) : ' + ' + numberText(n);
+      const timesX = (v) => near(v, 1) ? 'x' : near(v, -1) ? '−x' : numberText(v) + 'x';
+
+      function makeQuestion() {
+        let q, signature;
+        do {
+          const b = maybeScale();
+          const c = maybeShift(); // TRUE horizontal shift: b*x - h = b*(x-c).
+          q = {
+            n: choice([2, 3, 4, 5]), a: maybeScale(), b, c, h: b * c, k: maybeShift(),
+            // The outside constant and the exponent's two terms can switch places independently.
+            kFirst: Math.random() < 0.5,
+            hFirst: Math.random() < 0.5
+          };
+          signature = JSON.stringify(q);
+        } while (signature === previousSignature);
+        previousSignature = signature;
+        return q;
+      }
+
+      function expected(q) {
+        return {
+          reflectX: q.a < 0,
+          reflectY: q.b < 0,
+          vertical: !near(Math.abs(q.a), 1) ? Math.abs(q.a) : null,
+          horizontal: !near(Math.abs(q.b), 1) ? 1 / Math.abs(q.b) : null,
+          up: q.k > 0 ? q.k : null,
+          down: q.k < 0 ? -q.k : null,
+          left: q.c < 0 ? -q.c : null,
+          right: q.c > 0 ? q.c : null
+        };
+      }
+
+      function exponentText(q) {
+        if (q.hFirst && !near(q.h, 0)) {
+          return numberText(-q.h) + (q.b < 0 ? ' − ' : ' + ') + timesX(Math.abs(q.b));
+        }
+        return timesX(q.b) + (near(q.h, 0) ? '' : signedTerm(-q.h));
+      }
+
+      function equationMarkup(q, colored) {
+        const col = (className, content) => colored ? `<span class="${className}">${content}</span>` : content;
+        let exponent;
+        if (q.hFirst && !near(q.h, 0)) {
+          // Example: −3 + 2x, or 3 − 2x. Keep the minus on b blue in feedback.
+          exponent = col('c-h', numberText(-q.h))
+            + col('c-b', (q.b < 0 ? ' − ' : ' + ') + timesX(Math.abs(q.b)));
+        } else {
+          exponent = col('c-b', timesX(q.b))
+            + (near(q.h, 0) ? '' : col('c-h', signedTerm(-q.h)));
+        }
+        const power = `${q.n}<sup>${exponent}</sup>`;
+        if (q.kFirst && !near(q.k, 0)) {
+          // The +/− before the power belongs to a, even when a is not written.
+          const absA = Math.abs(q.a);
+          const coefficient = near(absA, 1) ? '' : numberText(absA) + '·';
+          const leadingK = col('c-k', numberText(q.k));
+          const signedA = col('c-a', (q.a < 0 ? ' − ' : ' + ') + coefficient);
+          return `f(x) = ${leadingK}${signedA}${power}`;
+        }
+        const a = near(q.a, 1) ? '' : near(q.a, -1) ? '−' : numberText(q.a) + '·';
+        const outer = a ? col('c-a', a) : '';
+        const k = near(q.k, 0) ? '' : col('c-k', signedTerm(q.k));
+        return `f(x) = ${outer}${power}${k}`;
+      }
+
+      function setEquation(colored) {
+        $('equation').innerHTML = equationMarkup(question, colored);
+        const q = question;
+        const power = `${q.n} to the power of (${exponentText(q)})`;
+        let readable;
+        if (q.kFirst && !near(q.k, 0)) {
+          const a = near(Math.abs(q.a), 1) ? '' : `${numberText(Math.abs(q.a))} times `;
+          readable = `${numberText(q.k)} ${q.a < 0 ? 'minus' : 'plus'} ${a}${power}`;
+        } else {
+          const a = near(q.a, 1) ? '' : `${numberText(q.a)} times `;
+          readable = `${a}${power}` + (near(q.k, 0) ? '' : ` ${q.k < 0 ? 'minus' : 'plus'} ${numberText(Math.abs(q.k))}`);
+        }
+        $('equation').setAttribute('aria-label', `f of x equals ${readable}`);
+      }
+
+      function refreshInputState() {
+        for (const key of quantified) {
+          const checked = $(key).checked;
+          const input = $(key + 'Value');
+          input.disabled = !checked;
+          if (!checked) input.value = '';
+        }
+      }
+
+      function startQuestion(announce) {
+        question = makeQuestion();
+        questionNumber += 1;
+        $('questionNumber').textContent = questionNumber;
+        $('resultToast').hidden = !announce;
+        $('prompt').textContent = 'Identify every transformation';
+        $('baseFunction').innerHTML = `${question.n}<sup>x</sup>`;
+        $('answerForm').hidden = false;
+        $('feedback').hidden = true;
+        $('answerForm').reset();
+        refreshInputState();
+        setEquation(false);
+        if (announce) {
+          $('announcer').textContent = `Correct! Streak ${streak}. New equation.`;
+          $('equation').focus({ preventScroll: true });
+        }
+      }
+
+      // Parse only nonnegative decimals and fractions (like 1/2), without eval().
+      function parseValue(text) {
+        const t = text.trim();
+        const pattern = '(?:\\d+(?:\\.\\d*)?|\\.\\d+)';
+        const match = new RegExp(`^(${pattern})(?:\\s*\\/\\s*(${pattern}))?$`).exec(t);
+        if (!match) return NaN;
+        const numerator = Number(match[1]);
+        const denominator = match[2] === undefined ? 1 : Number(match[2]);
+        return denominator === 0 ? NaN : numerator / denominator;
+      }
+
+      function isCorrect() {
+        const want = expected(question);
+        for (const key of keys) {
+          const checked = $(key).checked;
+          const shouldCheck = key === 'reflectX' || key === 'reflectY'
+            ? want[key] : want[key] !== null;
+          if (checked !== shouldCheck) return false;
+          if (checked && key !== 'reflectX' && key !== 'reflectY') {
+            const value = parseValue($(key + 'Value').value);
+            if (!Number.isFinite(value) || !near(value, want[key])) return false;
+          }
+        }
+        return true;
+      }
+
+      // Explanation is organized by actual equation components, not by guesses.
+      function addPart(css, heading, description) {
+        const row = document.createElement('div');
+        row.className = 'part part-' + css;
+        const title = document.createElement('strong');
+        title.textContent = heading;
+        const p = document.createElement('p');
+        p.textContent = description;
+        row.append(title, p);
+        $('parts').appendChild(row);
+      }
+
+      function explain(q) {
+        $('parts').replaceChildren();
+        const a = q.a, b = q.b, c = q.c, k = q.k;
+
+        const vertical = [];
+        if (a < 0) vertical.push('the minus sign reflects across the x-axis');
+        if (!near(Math.abs(a), 1)) vertical.push(`stretch vertically by ${numberText(Math.abs(a))}`);
+        addPart('a', near(a, 1) ? 'Outside coefficient: omitted (a = 1)' : `Outside coefficient: a = ${numberText(a)}`,
+          vertical.length ? vertical.join('; ') + '.' : 'No x-axis reflection or vertical stretch.');
+
+        const horizontal = [];
+        if (b < 0) horizontal.push('the minus sign on x reflects across the y-axis');
+        if (!near(Math.abs(b), 1)) horizontal.push(`stretch horizontally by 1/|b| = ${numberText(1 / Math.abs(b))}`);
+        addPart('b', near(b, 1) ? 'x coefficient: omitted (b = 1)' : `x coefficient: b = ${numberText(b)}`,
+          horizontal.length ? horizontal.join('; ') + '.' : 'No y-axis reflection or horizontal stretch.');
+
+        const inside = near(q.h, 0) ? 'none' : signedTerm(-q.h).trim();
+        let shiftDesc = 'No inside constant, so no left/right shift.';
+        if (!near(c, 0)) {
+          const factor = `${numberText(b)}(x ${c > 0 ? '−' : '+'} ${numberText(Math.abs(c))})`;
+          shiftDesc = `Factor the exponent: ${exponentText(q)} = ${factor}. Move ${c > 0 ? 'right' : 'left'} by ${numberText(Math.abs(c))}. The shift is h/b, not h.`;
+        }
+        addPart('h', `Inside constant: ${inside}`, shiftDesc);
+
+        const kDesc = near(k, 0)
+          ? 'No outside constant, so no up/down shift.'
+          : `The ${k > 0 ? 'plus' : 'minus'} outside the power moves the graph ${k > 0 ? 'up' : 'down'} by ${numberText(Math.abs(k))}.`;
+        addPart('k', near(k, 0) ? 'Outside constant: none (k = 0)' : `Outside constant: k = ${numberText(k)}`, kDesc);
+      }
+
+      // Blank amounts are always positive magnitudes, never signed directions.
+      // Prevent minus signs from keyboard, paste, or drag/drop. The input fallback
+      // covers mobile keyboards and composition methods that skip beforeinput.
+      const minusSigns = /[-\u2010-\u2015\u2212\uFE63\uFF0D]/;
+      const allMinusSigns = /[-\u2010-\u2015\u2212\uFE63\uFF0D]/g;
+      for (const key of quantified) {
+        $(key).addEventListener('change', refreshInputState);
+        const field = $(key + 'Value');
+        field.addEventListener('beforeinput', (event) => {
+          if (event.data && minusSigns.test(event.data)) event.preventDefault();
+        });
+        field.addEventListener('paste', (event) => {
+          if (event.clipboardData && minusSigns.test(event.clipboardData.getData('text'))) {
+            event.preventDefault();
+          }
+        });
+        field.addEventListener('drop', (event) => {
+          if (event.dataTransfer && minusSigns.test(event.dataTransfer.getData('text'))) {
+            event.preventDefault();
+          }
+        });
+        field.addEventListener('input', () => {
+          if (minusSigns.test(field.value)) {
+            field.value = field.value.replace(allMinusSigns, '');
+          }
+        });
+      }
+
+      function checkAnswer() {
+        // Guard against a rapid second tap accidentally submitting the next question.
+        if (Date.now() - lastSuccessTime < 450) return;
+        if (isCorrect()) {
+          streak += 1;
+          best = Math.max(best, streak);
+          updateScores();
+          lastSuccessTime = Date.now();
+          startQuestion(true); // Immediately display the next question.
+        } else {
+          streak = 0;
+          updateScores();
+          $('answerForm').hidden = true;
+          $('feedback').hidden = false;
+          $('resultToast').hidden = true;
+          $('prompt').textContent = 'Answer explained';
+          setEquation(true);
+          explain(question);
+          $('feedbackTitle').focus({ preventScroll: true });
+          $('announcer').textContent = 'Incorrect. Streak reset. Explanation displayed.';
+        }
+      }
+
+      // Direct click handler also works in mobile browsers that handle form submissions differently.
+      $('checkButton').addEventListener('click', checkAnswer);
+      $('answerForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        checkAnswer();
+      });
+
+      $('nextButton').addEventListener('click', () => {
+        startQuestion(false);
+        $('announcer').textContent = 'Next question.';
+        $('equation').focus({ preventScroll: true });
+      });
+
+      updateScores();
+      startQuestion(false);
+    })();
+  </script>
+</body>
+</html>
