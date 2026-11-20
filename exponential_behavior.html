@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8f6">
+  <meta name="color-scheme" content="light">
+  <title>Exponentials · Behavior</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1a2522;
+      background: #f7f8f6;
+      --line: #e3e8e4;
+      --muted: #697570;
+      --accent: #164e41;
+      --a: #79309b;
+      --b: #2058a3;
+      --good: #176b46;
+      --bad: #a1322c;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; }
+    button, input { font: inherit; }
+    button, label { -webkit-tap-highlight-color: transparent; }
+    [hidden] { display: none !important; }
+    .app { width: min(100%, 590px); margin: 0 auto; padding: 20px 16px calc(30px + env(safe-area-inset-bottom)); }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .wordmark { color: var(--muted); font-size: .76rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+    .stats { display: flex; gap: 16px; white-space: nowrap; font-size: .82rem; color: var(--muted); }
+    .stats strong { color: #17241f; font-size: 1.05rem; font-variant-numeric: tabular-nums; padding-left: 3px; }
+    .panel { background: white; border: 1px solid var(--line); border-radius: 19px; padding: clamp(17px, 4.5vw, 28px); box-shadow: 0 5px 23px rgba(27, 42, 32, .035); }
+    .eyebrow { color: var(--muted); text-transform: uppercase; letter-spacing: .11em; font-size: .73rem; font-weight: 750; margin: 0 0 14px; }
+    .question-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; margin: -4px 0 3px; font-size: .79rem; color: var(--muted); }
+    .result-toast { font-weight: 750; color: var(--accent); text-align: right; }
+    .equation-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 10px 0 6px; }
+    .equation { margin: 0; width: max-content; font-size: clamp(1.75rem, 7vw, 2.7rem); font-weight: 650; line-height: 1.65; letter-spacing: -.03em; white-space: nowrap; }
+    .equation sup { font-size: .64em; line-height: 0; vertical-align: super; }
+    .fraction { display: inline-flex; flex-direction: column; vertical-align: middle; align-items: center; font-size: .75em; line-height: 1.12; transform: translateY(-.05em); padding: 0 .04em; }
+    .fraction .num { display: block; border-bottom: 1.5px solid currentColor; min-width: 1.05em; padding: 0 .06em .05em; text-align: center; }
+    .fraction .den { display: block; padding: .05em .06em 0; text-align: center; }
+    .base-paren { font-weight: 450; }
+    .origin { color: var(--muted); margin: 9px 0 15px; font-size: .84rem; line-height: 1.5; }
+    .questions { border-top: 1px solid var(--line); }
+    fieldset { border: 0; padding: 15px 0 16px; margin: 0; min-width: 0; border-bottom: 1px solid var(--line); }
+    legend { float: left; display: block; width: 100%; padding: 0 0 10px; font-size: .93rem; font-weight: 650; line-height: 1.4; }
+    .options { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; clear: both; }
+    .options.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .option { min-width: 0; display: flex; justify-content: center; align-items: center; position: relative; min-height: 47px; padding: 9px 7px; border: 1px solid #d4dfd8; border-radius: 10px; font-size: .92rem; font-weight: 570; text-align: center; cursor: pointer; user-select: none; background: #fff; }
+    .option input { position: absolute; width: 100%; height: 100%; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+    .option:has(input:checked) { color: #10483a; background: #eaf4ee; border-color: #609681; box-shadow: inset 0 0 0 1px #609681; font-weight: 750; }
+    .option:has(input:focus-visible) { outline: 3px solid #a4d5c5; outline-offset: 3px; }
+    .option:active { background: #eff5f0; }
+    .button { display: block; width: 100%; margin-top: 20px; border: 0; border-radius: 11px; min-height: 52px; padding: 12px 16px; color: #fff; background: var(--accent); font-size: .99rem; font-weight: 700; cursor: pointer; }
+    .button:hover { background: #103d32; }
+    .button:active { transform: translateY(1px); }
+    .button:focus-visible { outline: 3px solid #a4d5c5; outline-offset: 3px; }
+    .feedback-title { margin: 22px 0 8px; font-size: 1.23rem; letter-spacing: -.02em; }
+    .feedback-subtitle { color: var(--muted); font-size: .86rem; margin: 0 0 12px; line-height: 1.5; }
+    .comparison { margin: 14px 0 19px; }
+    .comparison-header, .comparison-row { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .9fr) minmax(0, .9fr); gap: 8px; align-items: center; }
+    .comparison-header { padding: 0 9px 8px; font-size: .71rem; color: var(--muted); font-weight: 750; }
+    .comparison-row { padding: 12px 9px; border-top: 1px solid var(--line); font-size: .84rem; line-height: 1.3; }
+    .comparison-row.match { background: #f7faf8; }
+    .comparison-row.mismatch { background: #fff1f0; border-left: 3px solid #bd4e47; padding-left: 6px; }
+    .comparison-name { font-weight: 650; overflow-wrap: anywhere; }
+    .state { display: inline-block; width: 16px; font-weight: 800; color: var(--good); }
+    .mismatch .state { color: var(--bad); }
+    .answer { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .answer.correct { color: var(--good); font-weight: 750; }
+    .answer.error { color: var(--bad); font-weight: 750; }
+    .review-heading { font-size: .88rem; font-weight: 750; margin: 19px 0 8px; }
+    .part { padding: 12px 0 12px 11px; border-bottom: 1px solid var(--line); border-left: 3px solid var(--line); }
+    .part-a { border-left-color: var(--a); }
+    .part-b { border-left-color: var(--b); }
+    .part strong { display: block; font-size: .89rem; margin: 0 0 4px; }
+    .part p { margin: 0; color: #44514b; line-height: 1.5; font-size: .86rem; }
+    .c-a, .part-a strong { color: var(--a); }
+    .c-b, .part-b strong { color: var(--b); }
+    .note { margin: 14px 0 0; text-align: center; color: #8a9790; font-size: .75rem; }
+    .noscript-warning { margin: 12px 0; padding: 12px; border: 1px solid #dc985d; border-radius: 10px; font-size: .9rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 365px) {
+      .stats { gap: 9px; font-size: .75rem; }
+      .wordmark { font-size: .68rem; }
+      .comparison-header, .comparison-row { gap: 5px; }
+      .comparison-row { font-size: .75rem; }
+      .comparison-header { font-size: .65rem; }
+      .option { min-height: 45px; font-size: .86rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="wordmark">Exponential behavior</div>
+      <div class="stats" aria-label="Scores">
+        <span>Streak <strong id="streak">0</strong></span>
+        <span>Best <strong id="best">0</strong></span>
+      </div>
+    </header>
+
+    <section class="panel" aria-label="Exponential function behavior practice">
+      <p class="eyebrow">Identify the function's behavior</p>
+      <div class="question-meta"><span>Question <span id="questionNumber">1</span></span><span class="result-toast" id="resultToast" hidden>✓ Correct! Next question</span></div>
+      <noscript><p class="noscript-warning">This preview does not run JavaScript. Download the HTML file and open it in a browser.</p></noscript>
+      <div class="equation-wrap"><h1 class="equation" id="equation" tabindex="-1"></h1></div>
+      <p class="origin">Choose one answer for each.</p>
+
+      <form id="answerForm" novalidate>
+        <div class="questions">
+          <fieldset>
+            <legend>Concavity</legend>
+            <div class="options">
+              <label class="option"><input type="radio" name="concavity" value="up"><span>Concave up</span></label>
+              <label class="option"><input type="radio" name="concavity" value="down"><span>Concave down</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Increasing or decreasing?</legend>
+            <div class="options">
+              <label class="option"><input type="radio" name="direction" value="increasing"><span>Increasing</span></label>
+              <label class="option"><input type="radio" name="direction" value="decreasing"><span>Decreasing</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Limit as <i>x</i> → +∞</legend>
+            <div class="options three">
+              <label class="option"><input type="radio" name="limitPlus" value="plus"><span>+∞</span></label>
+              <label class="option"><input type="radio" name="limitPlus" value="minus"><span>−∞</span></label>
+              <label class="option"><input type="radio" name="limitPlus" value="zero"><span>0</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Limit as <i>x</i> → −∞</legend>
+            <div class="options three">
+              <label class="option"><input type="radio" name="limitMinus" value="plus"><span>+∞</span></label>
+              <label class="option"><input type="radio" name="limitMinus" value="minus"><span>−∞</span></label>
+              <label class="option"><input type="radio" name="limitMinus" value="zero"><span>0</span></label>
+            </div>
+          </fieldset>
+        </div>
+        <button class="button" id="checkButton" type="button">Check answer</button>
+      </form>
+
+      <div id="feedback" hidden>
+        <h2 class="feedback-title" id="feedbackTitle" tabindex="-1">Not quite.</h2>
+        <p class="feedback-subtitle">Your answers compared with the correct answers:</p>
+        <div class="comparison" aria-label="Answer comparison">
+          <div class="comparison-header"><span>Property</span><span>Your answer</span><span>Correct</span></div>
+          <div id="comparisonRows"></div>
+        </div>
+        <h3 class="review-heading">Why?</h3>
+        <div id="explanation"></div>
+        <button class="button" id="nextButton" type="button">Next question</button>
+      </div>
+    </section>
+    <p class="note">Practice works offline. Progress is saved on this device when possible.</p>
+    <div id="announcer" class="sr-only" aria-live="polite"></div>
+  </main>
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (id) => document.getElementById(id);
+      const storageKey = 'offline-exponent-behavior-v1';
+      const growthBases = [
+        { value: 2, text: '2' }, { value: 3, text: '3' },
+        { value: 4, text: '4' }, { value: 5, text: '5' },
+        { value: 1.5, num: 3, den: 2 }, { value: 4 / 3, num: 4, den: 3 },
+        { value: 5 / 2, num: 5, den: 2 }
+      ];
+      const decayBases = [
+        { value: 0.5, num: 1, den: 2 }, { value: 1 / 3, num: 1, den: 3 },
+        { value: 0.25, num: 1, den: 4 }, { value: 2 / 3, num: 2, den: 3 },
+        { value: 3 / 4, num: 3, den: 4 }, { value: 2 / 5, num: 2, den: 5 },
+        { value: 3 / 5, num: 3, den: 5 }, { value: 4 / 5, num: 4, den: 5 }
+      ];
+      const labels = {
+        concavity: { up: 'Concave up', down: 'Concave down' },
+        direction: { increasing: 'Increasing', decreasing: 'Decreasing' },
+        limitPlus: { plus: '+∞', minus: '−∞', zero: '0' },
+        limitMinus: { plus: '+∞', minus: '−∞', zero: '0' }
+      };
+      const rows = [
+        { key: 'concavity', title: 'Concavity' },
+        { key: 'direction', title: 'Direction' },
+        { key: 'limitPlus', title: 'x → +∞' },
+        { key: 'limitMinus', title: 'x → −∞' }
+      ];
+      let streak = 0;
+      let best = 0;
+      let questionNumber = 0;
+      let question = null;
+      let previousSignature = '';
+      let quadrantBag = [];
+      let reviewing = false;
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved && Number.isSafeInteger(saved.streak) && saved.streak >= 0) streak = saved.streak;
+        if (saved && Number.isSafeInteger(saved.best) && saved.best >= 0) best = Math.max(saved.best, streak);
+      } catch (_) { /* File-based browsers may disable storage. */ }
+
+      function saveScores() {
+        try { localStorage.setItem(storageKey, JSON.stringify({ streak, best })); }
+        catch (_) { /* Scores still work for this session. */ }
+      }
+      function updateScores() {
+        $('streak').textContent = String(streak);
+        $('best').textContent = String(best);
+        saveScores();
+      }
+      function randomItem(items) { return items[Math.floor(Math.random() * items.length)]; }
+      function shuffle(items) {
+        for (let i = items.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [items[i], items[j]] = [items[j], items[i]];
+        }
+        return items;
+      }
+      function nextQuadrant() {
+        if (!quadrantBag.length) quadrantBag = shuffle([0, 1, 2, 3]);
+        return quadrantBag.pop();
+      }
+      function makeQuestion() {
+        let result;
+        let signature;
+        do {
+          const quadrant = nextQuadrant();
+          const a = (quadrant < 2 ? 1 : -1) * randomItem([1, 2, 3, 4, 5, 6, 7]);
+          const base = randomItem(quadrant % 2 === 0 ? growthBases : decayBases);
+          result = { a, base, growingBase: quadrant % 2 === 0 };
+          signature = a + ':' + base.value;
+          // A second draw is exceptionally unlikely to be needed, but don't consume
+          // a new quadrant here: prevent consecutive identical formulas by resampling a.
+          if (signature === previousSignature) {
+            result.a = (quadrant < 2 ? 1 : -1) * (Math.abs(a) % 7 + 1);
+            signature = result.a + ':' + base.value;
+          }
+        } while (signature === previousSignature);
+        previousSignature = signature;
+        return result;
+      }
+      function answers(q) {
+        const positive = q.a > 0;
+        const rising = q.growingBase;
+        return {
+          concavity: positive ? 'up' : 'down',
+          direction: positive === rising ? 'increasing' : 'decreasing',
+          limitPlus: rising ? (positive ? 'plus' : 'minus') : 'zero',
+          limitMinus: rising ? 'zero' : (positive ? 'plus' : 'minus')
+        };
+      }
+      function fractionMarkup(base) {
+        if (base.text) return base.text;
+        return '<span class="base-paren">(</span><span class="fraction"><span class="num">' + base.num + '</span><span class="den">' + base.den + '</span></span><span class="base-paren">)</span>';
+      }
+      function equationMarkup(q, colored) {
+        const a = String(q.a).replace('-', '−');
+        const left = colored ? '<span class="c-a">' + a + '</span>' : a;
+        const b = fractionMarkup(q.base);
+        const right = colored ? '<span class="c-b">' + b + '</span>' : b;
+        return 'f(x) = ' + left + ' · ' + right + '<sup>x</sup>';
+      }
+      function readAnswers() {
+        const result = {};
+        for (const { key } of rows) {
+          const selected = document.querySelector('input[name="' + key + '"]:checked');
+          result[key] = selected ? selected.value : null;
+        }
+        return result;
+      }
+      function displayValue(key, value) {
+        return value === null ? '—' : labels[key][value];
+      }
+      function addExplanationPart(className, title, text) {
+        const part = document.createElement('section');
+        part.className = 'part ' + className;
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        const paragraph = document.createElement('p');
+        paragraph.textContent = text;
+        part.append(heading, paragraph);
+        $('explanation').appendChild(part);
+      }
+      function showFeedback(user, correct) {
+        $('comparisonRows').replaceChildren();
+        for (const { key, title } of rows) {
+          const match = user[key] === correct[key];
+          const row = document.createElement('div');
+          row.className = 'comparison-row ' + (match ? 'match' : 'mismatch');
+          const first = document.createElement('div');
+          first.className = 'comparison-name';
+          const state = document.createElement('span');
+          state.className = 'state';
+          state.textContent = match ? '✓' : '✕';
+          state.setAttribute('aria-label', match ? 'Correct' : 'Incorrect');
+          first.append(state, document.createTextNode(title));
+          const yours = document.createElement('div');
+          yours.className = 'answer' + (match ? '' : ' error');
+          yours.textContent = displayValue(key, user[key]);
+          const expected = document.createElement('div');
+          expected.className = 'answer correct';
+          expected.textContent = displayValue(key, correct[key]);
+          row.append(first, yours, expected);
+          $('comparisonRows').appendChild(row);
+        }
+        $('explanation').replaceChildren();
+        const q = question;
+        const positive = q.a > 0;
+        const growing = q.growingBase;
+        const aText = 'a = ' + String(q.a).replace('-', '−');
+        const bText = growing ? 'b > 1' : '0 < b < 1';
+        addExplanationPart('part-a', 'Concavity · ' + aText,
+          'The sign of a sets the concavity: positive means up; negative means down. Here, the graph is concave ' + correct.concavity + '.');
+        addExplanationPart('part-b', 'Direction · ' + bText,
+          (growing ? 'The exponential base grows as x increases.' : 'The exponential base decays as x increases.') +
+          (positive ? ' A positive coefficient keeps that direction.' : ' A negative coefficient reverses that direction.') +
+          ' So the function is ' + correct.direction + '.');
+        addExplanationPart('part-b', 'As x → +∞',
+          growing ? 'Since b > 1, bˣ grows without bound. Multiplying by ' + aText + ' makes the limit ' + displayValue('limitPlus', correct.limitPlus) + '.'
+                  : 'Since 0 < b < 1, bˣ approaches 0. Multiplying by ' + aText + ' still gives the limit 0.');
+        addExplanationPart('part-b', 'As x → −∞',
+          growing ? 'Since b > 1, bˣ approaches 0. Multiplying by ' + aText + ' still gives the limit 0.'
+                  : 'Since 0 < b < 1, bˣ grows without bound as x goes left. Multiplying by ' + aText + ' makes the limit ' + displayValue('limitMinus', correct.limitMinus) + '.');
+        $('equation').innerHTML = equationMarkup(q, true);
+        $('answerForm').hidden = true;
+        $('feedback').hidden = false;
+        $('resultToast').hidden = true;
+        $('announcer').textContent = 'Not quite. Your answers are compared with the correct answers.';
+        window.scrollTo(0, 0);
+      }
+      function checkAnswer() {
+        if (reviewing) return;
+        const user = readAnswers();
+        const correct = answers(question);
+        const allCorrect = rows.every(({ key }) => user[key] === correct[key]);
+        if (allCorrect) {
+          streak += 1;
+          best = Math.max(best, streak);
+          updateScores();
+          nextQuestion(true);
+        } else {
+          reviewing = true;
+          streak = 0;
+          updateScores();
+          showFeedback(user, correct);
+        }
+      }
+      function nextQuestion(wasCorrect) {
+        reviewing = false;
+        question = makeQuestion();
+        questionNumber += 1;
+        $('questionNumber').textContent = String(questionNumber);
+        $('equation').innerHTML = equationMarkup(question, false);
+        $('answerForm').reset();
+        $('answerForm').hidden = false;
+        $('feedback').hidden = true;
+        $('resultToast').hidden = !wasCorrect;
+        $('announcer').textContent = wasCorrect ? 'Correct! Question ' + questionNumber + '.' : 'Question ' + questionNumber + '.';
+        if (questionNumber > 1) window.scrollTo(0, 0);
+      }
+      $('checkButton').addEventListener('click', checkAnswer);
+      $('nextButton').addEventListener('click', () => nextQuestion(false));
+      $('answerForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        checkAnswer();
+      });
+      updateScores();
+      nextQuestion(false);
+    })();
+  </script>
+</body>
+</html>
