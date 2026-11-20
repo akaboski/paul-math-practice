@@ -55,6 +55,25 @@
     .button:focus-visible, .choice input:focus-visible { outline: 3px solid #a4d5c5; outline-offset: 2px; }
     .feedback-title { margin: 4px 0 9px; font-size: 1.2rem; letter-spacing: -.02em; }
     .feedback-subtitle { color: var(--muted); font-size: .86rem; margin: 0 0 12px; }
+    .comparison { margin: 14px 0 20px; }
+    .comparison-header, .comparison-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 8px; }
+    .comparison-header { padding: 0 8px 8px; font-size: .7rem; font-weight: 750; color: var(--muted); }
+    .comparison-row { padding: 11px 8px; border-top: 1px solid var(--line); font-size: .82rem; line-height: 1.35; }
+    .comparison-row.mismatch { background: #fff1f0; border-left: 3px solid #bd4e47; padding-left: 5px; }
+    .comparison-row.match { background: #f7faf8; }
+    .comparison-name { font-weight: 650; min-width: 0; }
+    .comparison-state { display: inline-block; width: 17px; color: #1b7450; font-weight: 800; }
+    .mismatch .comparison-state { color: #b13833; }
+    .comparison-cell { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+    .comparison-cell.correct-value { color: #176b46; font-weight: 650; }
+    .comparison-cell.user-error { color: #a1322c; font-weight: 650; }
+    .review-heading { font-size: .88rem; font-weight: 750; margin: 18px 0 8px; }
+    .comparison-help { color: var(--muted); margin: 7px 0 0; font-size: .76rem; }
+    @media (max-width: 365px) {
+      .comparison-header, .comparison-row { gap: 5px; }
+      .comparison-row { font-size: .75rem; }
+      .comparison-header { font-size: .65rem; }
+    }
     .parts { border-top: 1px solid var(--line); margin-top: 15px; }
     .part { padding: 13px 0 13px 12px; border-bottom: 1px solid var(--line); border-left: 3px solid; margin: 0; }
     .part-a { border-left-color: var(--a); }
@@ -112,7 +131,13 @@
 
       <div id="feedback" hidden aria-live="off">
         <h2 class="feedback-title" id="feedbackTitle" tabindex="-1">Not quite.</h2>
-        <p class="feedback-subtitle">Correct transformations, matched to each part of the equation:</p>
+        <p class="feedback-subtitle" id="comparisonSummary">Compare your answer with the correct answer.</p>
+        <div class="comparison" aria-label="Your answer compared with the correct answer">
+          <div class="comparison-header" aria-hidden="true"><span>Transformation</span><span>Your answer</span><span>Correct</span></div>
+          <div id="comparisonRows"></div>
+          <p class="comparison-help">Answer columns: ✓ checked · — not checked. Left symbols show matches or errors. Fractions and decimals are accepted.</p>
+        </div>
+        <h3 class="review-heading">Why these are the correct transformations</h3>
         <div class="parts" id="parts"></div>
         <button class="button" id="nextButton" type="button">Next question</button>
       </div>
@@ -130,6 +155,11 @@
       const steps = [-3, -2, -1, 1, 2, 3];
       const keys = ['reflectX', 'reflectY', 'vertical', 'horizontal', 'up', 'down', 'left', 'right'];
       const quantified = ['vertical', 'horizontal', 'up', 'down', 'left', 'right'];
+      const comparisonNames = {
+        reflectX: 'Reflect x-axis', reflectY: 'Reflect y-axis',
+        vertical: 'Vertical stretch', horizontal: 'Horizontal stretch',
+        up: 'Move up', down: 'Move down', left: 'Move left', right: 'Move right'
+      };
       const storageKey = 'offline-exponent-transforms-v1';
       let streak = 0;
       let best = 0;
@@ -281,19 +311,58 @@
         return denominator === 0 ? NaN : numerator / denominator;
       }
 
-      function isCorrect() {
+      function evaluateAnswer() {
         const want = expected(question);
-        for (const key of keys) {
+        return keys.map((key) => {
           const checked = $(key).checked;
-          const shouldCheck = key === 'reflectX' || key === 'reflectY'
-            ? want[key] : want[key] !== null;
-          if (checked !== shouldCheck) return false;
-          if (checked && key !== 'reflectX' && key !== 'reflectY') {
-            const value = parseValue($(key + 'Value').value);
-            if (!Number.isFinite(value) || !near(value, want[key])) return false;
-          }
+          const reflection = key === 'reflectX' || key === 'reflectY';
+          const shouldCheck = reflection ? want[key] : want[key] !== null;
+          const typed = reflection ? '' : $(key + 'Value').value.trim();
+          const valueMatches = reflection || !checked || near(parseValue(typed), want[key]);
+          return {
+            key, checked, shouldCheck, typed, correctValue: want[key],
+            matches: checked === shouldCheck && valueMatches
+          };
+        });
+      }
+
+      function correctAmount(row) {
+        if (row.key === 'horizontal' && near(row.correctValue, 1 / 3)) return '1/3';
+        if (row.key === 'horizontal' && near(row.correctValue, 1 / 2)) return '1/2';
+        return numberText(row.correctValue);
+      }
+
+      function showComparison(rows) {
+        const count = rows.filter((row) => row.matches).length;
+        $('comparisonSummary').textContent = `${count} of 8 transformations matched. Red rows show what needs changing.`;
+        const container = $('comparisonRows');
+        container.replaceChildren();
+        for (const row of rows) {
+          const line = document.createElement('div');
+          line.className = 'comparison-row ' + (row.matches ? 'match' : 'mismatch');
+
+          const name = document.createElement('div');
+          name.className = 'comparison-name';
+          const state = document.createElement('span');
+          state.className = 'comparison-state';
+          state.textContent = row.matches ? '✓' : '✕';
+          state.setAttribute('aria-label', row.matches ? 'Matches' : 'Mismatch');
+          name.append(state, document.createTextNode(comparisonNames[row.key]));
+
+          const yours = document.createElement('div');
+          yours.className = 'comparison-cell' + (row.matches ? '' : ' user-error');
+          yours.textContent = !row.checked ? '—' :
+            (row.key === 'reflectX' || row.key === 'reflectY') ? '✓' :
+            '✓ ' + (row.typed || '(blank)');
+
+          const correct = document.createElement('div');
+          correct.className = 'comparison-cell correct-value';
+          correct.textContent = !row.shouldCheck ? '—' :
+            (row.key === 'reflectX' || row.key === 'reflectY') ? '✓' :
+            '✓ ' + correctAmount(row);
+          line.append(name, yours, correct);
+          container.appendChild(line);
         }
-        return true;
       }
 
       // Explanation is organized by actual equation components, not by guesses.
@@ -369,7 +438,8 @@
       function checkAnswer() {
         // Guard against a rapid second tap accidentally submitting the next question.
         if (Date.now() - lastSuccessTime < 450) return;
-        if (isCorrect()) {
+        const comparison = evaluateAnswer();
+        if (comparison.every((row) => row.matches)) {
           streak += 1;
           best = Math.max(best, streak);
           updateScores();
@@ -383,6 +453,7 @@
           $('resultToast').hidden = true;
           $('prompt').textContent = 'Answer explained';
           setEquation(true);
+          showComparison(comparison);
           explain(question);
           $('feedbackTitle').focus({ preventScroll: true });
           $('announcer').textContent = 'Incorrect. Streak reset. Explanation displayed.';
